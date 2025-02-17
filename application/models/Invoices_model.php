@@ -80,6 +80,40 @@ class Invoices_model extends App_Model
         }, $invoices);
     }
 
+    public function get_paid_invoices()
+    {
+        // Seleccionar las columnas de las facturas y los datos adicionales del cliente
+        $this->db->select(db_prefix() . 'invoices.*,' . get_sql_select_client_company());
+        $this->db->join(db_prefix() . 'clients', db_prefix() . 'invoices.clientid=' . db_prefix() . 'clients.userid', 'left');
+        
+        // Solo facturas pagadas
+        $this->db->where('status', self::STATUS_PAID);
+        $this->db->where('total >', 0);
+        $this->db->order_by('number,YEAR(date)', 'desc');
+
+        // Obtener todas las facturas pagadas sin filtro por cliente
+        $invoices = $this->db->get(db_prefix() . 'invoices')->result();
+
+        if (!class_exists('payment_modes_model', false)) {
+            $this->load->model('payment_modes_model');
+        }
+
+        // Mapear las facturas para añadir los modos de pago permitidos y el total restante por pagar
+        return $invoices;
+        // return array_map(function ($invoice) {
+        //     $allowedModes = [];
+        //     foreach (unserialize($invoice->allowed_payment_modes) as $modeId) {
+        //         $allowedModes[] = $this->payment_modes_model->get($modeId);
+        //     }
+        //     $invoice->allowed_payment_modes = $allowedModes;
+        //     $invoice->total_left_to_pay = get_invoice_total_left_to_pay($invoice->id, $invoice->total);
+
+        //     return $invoice;
+        // }, $invoices);
+    }
+
+
+
     /**
      * Get invoice by id
      * @param  mixed $id
